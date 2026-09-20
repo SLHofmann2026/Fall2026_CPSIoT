@@ -9,7 +9,7 @@ it is released.
 ## Local prerequisites
 
 Install and authenticate the `mrg` CLI as described in the
-[course SPHERE account setup](../../../quickstart/sphere-account-setup.md).
+[course SPHERE account setup](../../../../quickstart/sphere-account-setup.md).
 The lifecycle wrapper also requires `python3`, `ssh-keygen`, and `expect` on
 your workstation. Windows users should run it from the course-supported WSL
 environment.
