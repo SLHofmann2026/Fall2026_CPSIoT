@@ -26,15 +26,29 @@ cd ~/cs6494-hw2/hw2
 ./run_spoof.sh
 ```
 
-Before the allocation expires, download your evidence, leave the process-node
-shell, and release the resources from this directory on your workstation:
+Before the allocation expires, note the final directory name printed after
+each `evidence:` line and leave the process-node shell. From this directory on
+your workstation, download the generated static-analysis bundle and each run
+you plan to cite or submit:
+
+```bash
+./sphere/hw2-sphere download-analysis
+./sphere/hw2-sphere download-run RUN_NAME
+```
+
+For example, if a run printed
+`evidence: .../runs/modbus-nominal-20260920T180000Z`, use
+`modbus-nominal-20260920T180000Z` as `RUN_NAME`. The wrapper transfers the
+files through your authenticated XDC; ordinary direct `scp` or an additional
+public key is not required. After verifying the local downloads, release the
+resources:
 
 ```bash
 ./sphere/hw2-sphere release
 ```
 
-See [the self-service lifecycle guide](sphere/README.md) for recovery and
-status commands.
+See [the self-service lifecycle guide](sphere/README.md) for destination
+options, recovery, and status commands.
 
 For an **instructor-authorized** local fallback, clone the public starter
 repository on your own machine, enter this directory, and omit

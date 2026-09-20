@@ -43,10 +43,35 @@ cd ~/cs6494-hw2/hw2
 ./preflight.sh --require-sphere
 ```
 
+## Download generated work
+
+The process node is private behind your XDC, so ordinary `scp` to `process`
+does not have a direct route. You do not need to add a public key. Leave the
+process-node shell and use the lifecycle wrapper from this HW2 directory on
+your workstation.
+
+Download the CFG, dependency map, tool provenance, and raw analyzer output:
+
+```bash
+./sphere/hw2-sphere download-analysis
+```
+
+Each experiment prints a path after `evidence:`. Pass only its final directory
+name to download that complete evidence bundle. For example:
+
+```bash
+./sphere/hw2-sphere download-run modbus-nominal-20260920T180000Z
+```
+
+The default local destinations are `./hw2-analysis` and `./RUN_NAME`. Supply a
+second argument to either command to choose a different destination. The
+wrapper refuses to overwrite an existing local path. Underneath, it uses
+`mrg xdc scp download` through your authenticated XDC; directly configured
+SSH/SFTP is not required.
+
 ## Release resources
 
-Download your evidence first. Then leave the process-node shell and run on your
-workstation:
+Download your analysis and evidence first. Then run on your workstation:
 
 ```bash
 ./sphere/hw2-sphere release

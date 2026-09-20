@@ -97,3 +97,19 @@ staff.
 That is intentional. The local path removes only recognized transient state;
 the SPHERE path restores the stateful OpenPLC CLOSED baseline. Both retain
 evidence so you can download or submit it.
+
+## Direct `scp` or SFTP cannot reach `process`
+
+That is expected: the process node is on the experiment-private network behind
+your XDC. You do not need to add another public key. Leave the process-node
+shell and, from the HW2 directory on your workstation, use:
+
+```bash
+./sphere/hw2-sphere download-analysis
+./sphere/hw2-sphere download-run RUN_NAME
+```
+
+Use only the final directory name printed after `evidence:` as `RUN_NAME`.
+These commands route `mrg xdc scp download` through your authenticated XDC and
+refuse to overwrite an existing local destination. Run them before `release`
+or allocation expiry.

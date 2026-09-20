@@ -66,6 +66,11 @@ uses modeled JSON/TCP semantics and produces no pcap.
 
 **Scaffolded mechanics.** Run `./analyze.sh`. Inspect
 `representations/controller.c`, the generated CFG, and the dependency map.
+The source file is already in your local repository checkout. To view the
+generated files locally, run `./sphere/hw2-sphere download-analysis` from this
+HW2 directory in a separate workstation terminal (or after leaving the
+process-node shell); see the
+[lifecycle guide](sphere/README.md#download-generated-work).
 
 **Student decision.** Identify the untrusted observation, the two comparisons,
 the state that survives between scans, and the final actuator decision. Trace
@@ -240,10 +245,14 @@ reporting success or failure.
 ./reset.sh
 ```
 
-Confirm your evidence still exists, download the required bundle/memo, and
-leave the process-node shell. On your workstation, release the allocation:
+Confirm your evidence still exists and record the final directory name from
+each `evidence:` path. Leave the process-node shell. On your workstation,
+download the static-analysis bundle and every evidence run you need, verify the
+local files, and then release the allocation:
 
 ```bash
+./sphere/hw2-sphere download-analysis
+./sphere/hw2-sphere download-run RUN_NAME
 ./sphere/hw2-sphere release
 ```
 

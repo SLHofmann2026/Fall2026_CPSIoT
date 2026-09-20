@@ -18,6 +18,10 @@ Commands:
   create          Create, attach, and provision your fixed HW2 environment
   status          Show your realization, expiry, and XDC URL
   connect         Open a shell on your HW2 process node
+  download-analysis [DESTINATION]
+                  Download the generated CFG and dependency-analysis bundle
+  download-run RUN_NAME [DESTINATION]
+                  Download one evidence directory printed by a run command
   release [--yes] Release your XDC and realization
 
 The wrapper derives resource names from `mrg whoami`. It accepts no topology,
@@ -250,6 +254,40 @@ connect_environment() {
     exec mrg xdc ssh -x "$xdc" process
 }
 
+require_ready_environment() {
+    if ! materialization_exists || ! xdc_record >/dev/null; then
+        echo "HW2 is not ready. Run: ./sphere/hw2-sphere create" >&2
+        exit 2
+    fi
+}
+
+download_tree() {
+    local remote_path="$1"
+    local destination="$2"
+    if [[ -e "$destination" ]]; then
+        echo "refusing to overwrite existing destination: $destination" >&2
+        exit 2
+    fi
+    require_ready_environment
+    mrg xdc scp download -x "$xdc" -r \
+        "process:cs6494-hw2/hw2/$remote_path" "$destination"
+    echo "Downloaded $remote_path to $destination"
+}
+
+download_analysis() {
+    download_tree "runs/analysis" "${1:-./hw2-analysis}"
+}
+
+download_run() {
+    local run_name="$1"
+    local destination="${2:-./$run_name}"
+    if [[ ! "$run_name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+        echo "RUN_NAME must be the final directory name printed after 'evidence:'" >&2
+        exit 2
+    fi
+    download_tree "runs/$run_name" "$destination"
+}
+
 release_environment() {
     local confirmed="${1:-}"
     if [[ "$confirmed" != "--yes" ]]; then
@@ -288,6 +326,14 @@ case "$command" in
     connect)
         [[ $# -eq 1 ]] || { usage >&2; exit 2; }
         connect_environment
+        ;;
+    download-analysis)
+        [[ $# -le 2 ]] || { usage >&2; exit 2; }
+        download_analysis "${2:-}"
+        ;;
+    download-run)
+        [[ $# -ge 2 && $# -le 3 ]] || { usage >&2; exit 2; }
+        download_run "$2" "${3:-}"
         ;;
     release)
         [[ $# -le 2 ]] || { usage >&2; exit 2; }
