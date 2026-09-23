@@ -22,12 +22,18 @@ of your analysis.
 Complete this from the source and your own trace. Use a separate row when an
 object has different owners or authorities at different layers.
 
-| Concept/object | Owner | Who may observe it? | Read or write in the captured operation? | Process/data or engineering/program plane? | Physical meaning and evidence limit |
-|---|---|---|---|---|---|
-| Reported observation |  |  |  |  |  |
-| Prior command/state |  |  |  |  |  |
-| Actuator command |  |  |  |  |  |
-| Process truth |  |  |  |  |  |
+For the packet-dependent columns, select one representative request/response
+transaction for each distinct function/object combination in your nominal
+trace. Record its timestamp or transaction identifier; do not add a row for
+every repeated controller scan. Use `N/A` when a concept has no captured
+network operation, and explain that evidence limit rather than inventing one.
+
+| Concept/object | Owner | Who may observe it? | Representative transaction or `N/A` | Read or write? | Authorized role and basis | Process/data or engineering/program plane? | Physical meaning and evidence limit |
+|---|---|---|---|---|---|---|---|
+| Reported observation |  |  |  |  |  |  |  |
+| Prior command/state |  |  |  |  |  |  |  |
+| Actuator command |  |  |  |  |  |  |  |
+| Process truth |  |  |  |  |  |  |  |
 
 Derive the controller's transition rules from `controller.c` and
 `controller.st`; do not copy a rule table from this reference. Your explanation

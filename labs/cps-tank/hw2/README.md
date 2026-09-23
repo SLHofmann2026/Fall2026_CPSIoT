@@ -95,31 +95,47 @@ without being handed the answer.
 
 **Scaffolded mechanics.** Inspect `representations/controller.st` and
 `REPRESENTATION_MAP.md`. Map the reported REAL to `%MD0` / holding
-registers 2048–2049 and the inlet BOOL to `%QX0.0` / coil 0. Inspect the
-captured Modbus operations with:
+registers 2048–2049 and the inlet BOOL to `%QX0.0` / coil 0. This mechanical
+mapping is provided scaffolding; you are not being asked to rediscover the
+addresses.
+
+Complete the source- and architecture-based worksheet columns now. Do **not**
+run the nominal case early just to obtain packet evidence: Part C requires you
+to record predictions before execution. After recording those predictions and
+producing your nominal bundle in Part C, return to the packet-dependent
+columns and inspect the captured Modbus operations with:
 
 ```bash
 ./show_network.sh RUN_DIRECTORY
 ```
 
-In the SPHERE path, `modbus_trace.csv` is generated from the run's real
-`network.pcap`; it is not a parallel modeled record. If staff authorize the
-local fallback, inspect `network_trace.csv` as a labeled semantic
-reconstruction instead. `show_network.sh` is only for SPHERE pcap bundles.
+Do not classify every repeated packet row. Select one representative
+request/response transaction for each distinct function/object combination in
+the nominal trace and record its timestamp or transaction identifier.
+`modbus_trace.csv` is the saved detailed projection generated from the run's
+real `network.pcap`; `show_network.sh` re-decodes the same pcap into a compact
+view. Similar content and the same number of packet rows are therefore
+expected, not two independent evidence sources. If staff authorize the local
+fallback, inspect `network_trace.csv` as a labeled semantic reconstruction
+instead. `show_network.sh` is only for SPHERE pcap bundles.
 
-**Student decision.** For each provided operation, decide who owns it, who can
-observe it, whether it is a read or write, and whether it belongs to the
-process/data plane or the engineering/program-management plane. Explain why a
-syntactically valid or accepted write does not by itself establish that the
-writer was authorized, that the controller used the value, or that the result
-was safe.
+**Student decision.** For each selected representative transaction, decide who
+owns the object, who can observe it, whether the operation is a read or write,
+what role is authorized to perform it and on what basis, and whether it belongs
+to the process/data plane or the engineering/program-management plane. If a
+plane or operation is absent from the capture, say so rather than inventing
+packet evidence. Explain why a syntactically valid or accepted write does not
+by itself establish that the writer was authorized, that the controller used
+the value, or that the result was safe.
 
 **Student artifact.** A completed concept/tag/address/owner/authority table and
 a two- or three-sentence explanation of why a Modbus data write is not a PLC
 program download. Include one example separating protocol validity from
 authorized or safe outcome. `REPRESENTATION_MAP.md` supplies the mechanical
 name/address columns and leaves the assessed ownership, authority, plane, and
-evidence-limit columns for you.
+evidence-limit columns for you. One representative transaction per distinct
+function/object combination is sufficient; repeated scans do not require
+repeated worksheet rows.
 
 **Learning outcome.** Connect source intent, PLC memory, and network-visible
 objects without treating representations as interchangeable proof.
