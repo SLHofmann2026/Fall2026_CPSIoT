@@ -26,6 +26,13 @@ level, or PLC program. On SPHERE, the fixed process client writes the resulting
 value to OpenPLC with Modbus TCP and captures the traffic. In the local
 fallback, `run_case.sh sensor_spoof` models the exchange and produces no pcap.
 
+`show_network.sh RUN_DIRECTORY` re-decodes a SPHERE run's `network.pcap` with
+`tshark` and prints a compact readable projection. The bundle's
+`modbus_trace.csv` is a saved, more detailed projection of that same pcap, so
+similar rows and equal packet counts are expected. Neither is an independent
+second capture. For Part B, select representative transactions rather than
+classifying every repeated scan.
+
 `search.sh` runs a transparent finite grid over selected initial levels, attack starts, and sensor biases. It is bounded search, not a production fuzzer or proof engine.
 
 `program_plane_demo.sh` compares hashes and bounded safety results for known baseline and modified ST files. It is offline and opens no network connection.
