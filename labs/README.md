@@ -12,3 +12,9 @@ Instructions and starter material for the scaffolded labs.
 
 Each lab folder contains its instructions, any starter code or data, and what to submit. Submit
 through Canvas unless the lab says otherwise.
+
+## Lecture demos
+
+- [SMT solver demo](smt-solver-demo/) — the tank sensor-bias query, a bounded
+  distribution-feeder example, and the mapping from executable controller code
+  to Z3 constraints.
