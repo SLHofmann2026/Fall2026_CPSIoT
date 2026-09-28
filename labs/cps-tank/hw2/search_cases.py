@@ -56,11 +56,42 @@ def search(initials: Iterable[float], starts: Iterable[float], biases: Iterable[
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--initial", type=float, nargs="+", default=[40.0, 50.0, 60.0])
-    parser.add_argument("--start", type=float, nargs="+", default=[4.0, 8.0, 12.0])
-    parser.add_argument("--bias", type=float, nargs="+", default=[-20.0, -35.0, -50.0])
-    parser.add_argument("--out", type=pathlib.Path, default=HERE / "runs" / "search-results.csv")
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        epilog=(
+            "For a one-dimensional Part D search, provide one fixed value for "
+            "each dimension you are not varying. Result columns such as "
+            "first_violation_s and physical_property are outcomes, not inputs."
+        ),
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--initial",
+        type=float,
+        nargs="+",
+        default=[40.0, 50.0, 60.0],
+        help="initial true tank level(s), in percent",
+    )
+    parser.add_argument(
+        "--start",
+        type=float,
+        nargs="+",
+        default=[4.0, 8.0, 12.0],
+        help="time(s) when sensor bias begins; emitted as spoof_after_s",
+    )
+    parser.add_argument(
+        "--bias",
+        type=float,
+        nargs="+",
+        default=[-20.0, -35.0, -50.0],
+        help="sensor bias value(s), in percentage points",
+    )
+    parser.add_argument(
+        "--out",
+        type=pathlib.Path,
+        default=HERE / "runs" / "search-results.csv",
+        help="destination CSV containing tested inputs and oracle outcomes",
+    )
     args = parser.parse_args()
     rows = search(args.initial, args.start, args.bias)
     args.out.parent.mkdir(parents=True, exist_ok=True)

@@ -183,8 +183,25 @@ happened across layers.
 start, or sensor bias—and run a small disclosed search. Example:
 
 ```bash
-./search.sh --bias -20 -35 -50 --start 4 8 12
+./search.sh --initial 50 --start 8 --bias -20 -35 -50
 ```
+
+This example varies only sensor bias. It pins the initial level and manipulation
+start because the script defaults contain multiple values for all three
+dimensions. If you choose a different dimension, give one fixed value for each
+of the other two so the resulting comparison still isolates your chosen
+variable.
+
+The generated CSV separates search inputs from oracle outputs:
+
+- `initial_level_pct`, `spoof_after_s`, and `sensor_bias_pct` record the tested
+  case. `spoof_after_s` is the value supplied through `--start` and marks when
+  the sensor bias begins.
+- `maximum_true_level_pct` records the largest sampled process-truth value.
+- `first_violation_s` is the earliest sampled time at which true level is at
+  least 90%; it is blank when no such sample exists.
+- `physical_property` is `PASS` when every sampled true level is below 90% and
+  `FAIL` otherwise. These are output columns, not additional search knobs.
 
 You are not implementing a fuzzer. You are designing a bounded search over an
 allowed input or perturbation surface. Do not submit the example grid without

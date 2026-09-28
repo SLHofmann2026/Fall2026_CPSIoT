@@ -33,7 +33,19 @@ similar rows and equal packet counts are expected. Neither is an independent
 second capture. For Part B, select representative transactions rather than
 classifying every repeated scan.
 
-`search.sh` runs a transparent finite grid over selected initial levels, attack starts, and sensor biases. It is bounded search, not a production fuzzer or proof engine.
+`search.sh` runs a transparent finite Cartesian grid over selected initial
+levels, attack starts, and sensor biases. Part D asks you to vary one dimension,
+so pass one fixed value for each of the other two; otherwise the multi-value
+defaults also vary them. For example,
+`./search.sh --initial 50 --start 8 --bias -20 -35 -50` varies only bias.
+
+The result CSV includes both inputs and outcomes. `spoof_after_s` echoes the
+selected `--start` value. `first_violation_s` is the earliest sampled time at
+which process truth reaches the 90% high-high threshold and is blank for a
+passing case. `physical_property` is the finite-run `PASS`/`FAIL` verdict for
+`always(true_level_pct < 90)`. These columns support your table or plot; they
+are not additional command-line parameters. The tool remains bounded search,
+not a production fuzzer or proof engine.
 
 `program_plane_demo.sh` compares hashes and bounded safety results for known baseline and modified ST files. It is offline and opens no network connection.
 
