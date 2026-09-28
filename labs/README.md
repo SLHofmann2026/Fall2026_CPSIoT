@@ -18,3 +18,6 @@ through Canvas unless the lab says otherwise.
 - [SMT solver demo](smt-solver-demo/) — the tank sensor-bias query, a bounded
   distribution-feeder example, and the mapping from executable controller code
   to Z3 constraints.
+- [Live agent authority demo](agent-authority-demo/) — a local model proposes a
+  fixed fake CPS action, while a deterministic policy gate decides whether the
+  in-memory effect is allowed and records the evidence. Replay mode requires no model.
