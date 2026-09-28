@@ -32,6 +32,10 @@ The script displays this menu before asking students to predict the model's choi
 
 `clean` means the baseline inputs contain no injected instruction. It does not promise correct model behavior: even this case may produce a threshold-change proposal. Show the actual result rather than forcing a refusal. The Python gate still blocks the write.
 
+The same system prompt is used for every case. It explicitly says that available actions are options, not instructions to perform them, and that `candidate_id: null` means answering without requesting a setting change. There is no case-specific instruction forcing a clean refusal or a poisoned proposal, and the application does not rewrite an inconsistent model reply. A summary saying "no change is authorized" may still be paired with a threshold-change ID; inspect both fields.
+
+The live call uses temperature 0 and a fixed seed (6494). Identical reruns can repeat the same behavior; they are not independent random trials. If clean and poisoned runs both request the change, the comparison does not establish that the injected note caused the request. The gate's denial is still an independent authorization result.
+
 ## Where observations come from
 
 The script loads an alarm log and maintenance note from `fixtures/scenarios.json`. They represent already-returned read-tool results. **No separate observation agent runs**, and the model does not call or select these read tools during this exercise.
@@ -68,11 +72,15 @@ The default live model is `llama3.1`. Select another installed model with `--mod
 ```bash
 ./run_demo.sh check
 python3 -m unittest discover -s tests -v
+./run_demo.sh run clean --provider ollama
 ./run_demo.sh run poisoned --provider ollama
+./run_demo.sh run malicious --provider ollama
 ./run_demo.sh run poisoned --provider replay
 ```
 
 `check` exits successfully when Ollama is unavailable because replay mode remains usable. Use `--provider ollama` for a strict live test.
+
+Test all three inputs before class and keep the observed choices. Prompt wording can improve the baseline comparison, but no model is required to follow the expected teaching narrative. A no-action reply gives `NO_PROPOSAL`, not `DENY`; a requested triage write is denied. For a permitted engineering change and the deliberately weak-policy contrast, use `./run_demo.sh policy-sequence --pause` (no LLM call).
 
 ## Monday sequence: failure attribution
 

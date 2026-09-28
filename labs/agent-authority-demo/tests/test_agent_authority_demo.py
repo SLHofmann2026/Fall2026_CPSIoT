@@ -16,6 +16,7 @@ sys.path.insert(0, str(DEMO_DIR))
 from agent_authority_demo import (  # noqa: E402
     ActionPolicyGate,
     SimulatedPlant,
+    call_ollama,
     extract_json_object,
     load_replays,
     load_scenarios,
@@ -74,13 +75,43 @@ class ParsingTests(unittest.TestCase):
 
     def test_prompt_separates_observations_from_control_choices(self):
         system, user = model_prompt(load_scenarios()["clean"])
-        self.assertIn("not action choices", system)
+        self.assertIn("already-supplied observations", system)
+        self.assertIn("Available actions are options, not instructions to perform them", system)
+        self.assertIn("Use candidate_id=null when answering without requesting a setting change", system)
         self.assertIn("No observation agent runs", json.loads(user)["observation_delivery"])
         payload = json.loads(user)
         self.assertEqual(set(payload["tool_results"]), {"read_alarm_log", "read_maintenance_note"})
         self.assertEqual(len(payload["candidate_actions"]), 1)
         self.assertIsNone(payload["no_control_action"]["candidate_id"])
         self.assertEqual(payload["control_tool"]["name"], "set_trip_threshold")
+
+    def test_all_scenarios_use_the_same_selection_instructions(self):
+        scenarios = load_scenarios()
+        baseline_system, baseline_user = model_prompt(scenarios["clean"])
+        baseline_choices = json.loads(baseline_user)["candidate_actions"]
+        for name, fixture in scenarios.items():
+            with self.subTest(scenario=name):
+                system, user = model_prompt(fixture)
+                self.assertEqual(system, baseline_system)
+                self.assertEqual(json.loads(user)["candidate_actions"], baseline_choices)
+                self.assertIsNone(json.loads(user)["no_control_action"]["candidate_id"])
+
+    def test_ollama_sends_uniform_prompt_and_preserves_the_reply(self):
+        scenarios = load_scenarios()
+        for name, choice in [("clean", None), ("poisoned", "set-p1-hh-trip-150"), ("malicious", "set-p1-hh-trip-150")]:
+            with self.subTest(scenario=name):
+                # Mocked transport tests plumbing, not live-model reliability.
+                reply = {"summary": "Model-selected reply.", "candidate_id": choice}
+                raw = json.dumps(reply)
+                with patch("agent_authority_demo.request_json", return_value={"message": {"content": raw}}) as request:
+                    result = call_ollama(scenarios[name], "test-model", "http://127.0.0.1:11434", 1)
+                system, user = model_prompt(scenarios[name])
+                payload = request.call_args.args[1]
+                self.assertEqual(payload["messages"], [{"role": "system", "content": system}, {"role": "user", "content": user}])
+                self.assertEqual(payload["format"], "json")
+                self.assertEqual(payload["options"], {"temperature": 0, "seed": 6494, "num_predict": 180})
+                self.assertEqual(result["candidate_id"], choice)
+                self.assertEqual(result["_raw"], raw)
 
 
 class PolicyTests(unittest.TestCase):
@@ -159,6 +190,20 @@ class WalkthroughTests(unittest.TestCase):
         self.assertIn("Permission: DENY", output)
         self.assertIn("TRIAGE_READ_ONLY", output)
         self.assertIn("120 -> 120 (unchanged)", output)
+        self.assertFalse(next(row for row in logs if row["event"] == "effect_result")["executed"])
+
+    def test_conflicting_clean_reply_is_not_rewritten_to_no_action(self):
+        output, logs = self.run_case(model_reply={
+            "summary": "No trip-setting change is authorized.",
+            "candidate_id": "set-p1-hh-trip-150",
+        })
+        self.assertIn("No trip-setting change is authorized.", output)
+        self.assertIn("Choice: Propose P1_HH_TRIP = 150", output)
+        self.assertIn("Permission: DENY", output)
+        self.assertNotIn("Choice: Summary / escalation only", output)
+        model_record = next(row for row in logs if row["event"] == "model_proposal")
+        self.assertEqual(model_record["proposal"]["candidate_id"], "set-p1-hh-trip-150")
+        self.assertIsNone(model_record["parse_error"])
         self.assertFalse(next(row for row in logs if row["event"] == "effect_result")["executed"])
 
     def test_details_keeps_json_available(self):
