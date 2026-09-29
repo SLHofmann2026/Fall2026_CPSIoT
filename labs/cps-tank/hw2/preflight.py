@@ -73,11 +73,17 @@ def inspect(require_sphere: bool = False) -> dict:
 
     sphere_values = {name: os.environ.get(name, "").strip() for name in SPHERE_ENVIRONMENT}
     sphere_present = all(sphere_values.values())
+    analysis_tools = [name for name in ("clang-14", "dot") if shutil.which(name) is None]
+    # Fallback execution still requires real Clang CFG generation. It must not
+    # report Ready on a bare VM merely because Python and the files are present.
+    if not require_sphere and not sphere_present:
+        if "clang-14" in analysis_tools and shutil.which("clang") is not None:
+            analysis_tools.remove("clang-14")
+        record("program-analysis tools", not analysis_tools,
+               "Clang and Graphviz present" if not analysis_tools
+               else "missing: " + ", ".join(analysis_tools))
+    require_sphere = require_sphere or sphere_present
     if require_sphere:
-        analysis_tools = [
-            name for name in ("clang-14", "dot")
-            if shutil.which(name) is None
-        ]
         framac = pathlib.Path("/opt/cs6494/frama-c-bundle/bin/frama-c")
         record(
             "program-analysis tools",
@@ -101,7 +107,7 @@ def inspect(require_sphere: bool = False) -> dict:
                 else (
                     f"unsupported prepared transport: {sphere_values['HW2_TRANSPORT']}"
                     if sphere_present
-                    else "prepared image did not provide "
+                    else "provisioning did not provide "
                     + ", ".join(
                         name for name, value in sphere_values.items() if not value
                     )
@@ -173,7 +179,7 @@ def main() -> int:
     parser.add_argument(
         "--require-sphere",
         action="store_true",
-        help="fail unless the prepared image supplies identity, expiry, and Modbus transport",
+        help="require provisioned identity, tools, capture, and the OpenPLC endpoint",
     )
     args = parser.parse_args()
     result = inspect(args.require_sphere)

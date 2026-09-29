@@ -4,7 +4,11 @@
 node, `./preflight.sh --require-sphere` also checks the supplied identity,
 transport, fixed OpenPLC endpoint, and network tools. It reports the expiry
 value but does not enforce the course resource deadline. Students do not need
-to compile C or install dependencies.
+to compile C or install dependencies on a successfully provisioned node.
+`hw2-prepare` is installed at `/usr/local/bin/hw2-prepare` by the provisioning
+step; it is not a repository script. If it or the tools are missing, leave the
+node and resume `./sphere/hw2-sphere create` from your updated workstation
+checkout. See [setup recovery](sphere/README.md#recover-an-incomplete-setup).
 
 `analyze.sh` launches Clang's `debug.DumpCFG` and Frama-C Eva with `-deps`,
 preserves their raw output, and projects those results into the course CFG and

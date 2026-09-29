@@ -10,11 +10,13 @@ the fixed lifecycle wrapper to create your own eight-hour allocation:
 ```bash
 ./sphere/hw2-sphere create
 ./sphere/hw2-sphere status
+./sphere/hw2-sphere check
 ./sphere/hw2-sphere connect
 ```
 
 The wrapper pins the course project, model revision, topology, duration, and
-provisioning payload. Do not create resources manually or attach to another
+provisioning payload. Wait for `HW2 is ready` and passing remote preflight
+checks before connecting. Do not create resources manually or attach to another
 student's realization. After `connect`, you are on your **process node**. Run:
 
 ```bash
@@ -25,6 +27,14 @@ cd ~/cs6494-hw2/hw2
 ./run_nominal.sh
 ./run_spoof.sh
 ```
+
+`hw2-prepare` is installed on the process node at `/usr/local/bin/hw2-prepare`
+by provisioning; it is not in the repository. If it or the required tools are
+missing, use `exit`, then `git pull --ff-only` and rerun
+`./sphere/hw2-sphere create` from your workstation. This resumes the existing
+allocation. Keep any clone or evidence you already made; do not install packages
+or delete directories to repair setup. See the
+[recovery steps](sphere/README.md#recover-an-incomplete-setup).
 
 Before the allocation expires, note the final directory name printed after
 each `evidence:` line and leave the process-node shell. From this directory on
@@ -110,7 +120,7 @@ Your work begins after the commands succeed: explain why the two cases differ, w
 Choose and justify a small range, then run it. For example:
 
 ```bash
-./search.sh --bias -20 -35 -50 --start 4 8 12
+./search.sh --initial 50 --start 8 --bias -20 -35 -50
 ```
 
 This is finite testing. Finding no counterexample would not prove safety.

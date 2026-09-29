@@ -11,5 +11,10 @@ HW2 is an individual assignment. Each student uses the released lifecycle
 wrapper to create and release an isolated copy of the same pinned two-node
 topology.
 
+Wait for `HW2 is ready` after remote preflight passes; an attached VM alone is
+not a prepared lab. If `hw2-prepare` or dependencies are missing, use the
+[incomplete-setup recovery steps](../labs/cps-tank/hw2/sphere/README.md#recover-an-incomplete-setup).
+Do not delete existing clones or install packages to repair provisioning.
+
 Each quickstart is written to be followed without help. If you get stuck on a step, that is a bug
 in the guide — report it and it gets fixed for everyone.

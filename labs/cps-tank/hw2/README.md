@@ -41,9 +41,11 @@ to create and enter your fixed environment:
 
 ```bash
 ./sphere/hw2-sphere create
+./sphere/hw2-sphere check
 ./sphere/hw2-sphere connect
 ```
 
+Wait until `create` prints **HW2 is ready** after remote preflight passes.
 After `connect`, you are on your SPHERE **process node**. Prepare your workspace
 and check the environment:
 
@@ -52,6 +54,12 @@ hw2-prepare
 cd ~/cs6494-hw2/hw2
 ./preflight.sh --require-sphere
 ```
+
+`hw2-prepare` is installed at `/usr/local/bin/hw2-prepare` by provisioning;
+it is not a repository script. If it or the required tools are missing, exit
+the node, update your workstation checkout with `git pull --ff-only`, and rerun
+`./sphere/hw2-sphere create`. Keep existing clones and evidence. See
+[setup recovery](sphere/README.md#recover-an-incomplete-setup).
 
 Preflight must report your instance, allocation identifier, and expiry value
 and verify the fixed OpenPLC endpoint and packet-capture tools. It does not itself enforce
