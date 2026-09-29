@@ -8,7 +8,15 @@ project="cs6494hw2"
 experiment="hw2lab"
 model_revision="3e40e7e2675258f40379508f6c2b54d84acddc1e"
 duration="8h"
-bundle="/project/cs6494hw2/hw2-provision-v2"
+bundle="/project/cs6494hw2/hw2-provision-v3"
+ssh_root=""
+key_root=""
+
+cleanup() {
+    [[ -z "$ssh_root" ]] || rm -rf "$ssh_root"
+    [[ -z "$key_root" ]] || rm -rf "$key_root"
+}
+trap cleanup EXIT
 
 usage() {
     cat <<'EOF'
@@ -17,7 +25,8 @@ usage: ./sphere/hw2-sphere COMMAND
 Commands:
   create          Create, attach, and provision your fixed HW2 environment
   status          Show your realization, expiry, and XDC URL
-  connect         Open a shell on your HW2 process node
+  connect         Verify provisioning, then open your HW2 process-node shell
+  check           Verify installed tools, identity, capture, and OpenPLC
   download-analysis [DESTINATION]
                   Download the generated CFG and dependency-analysis bundle
   download-run RUN_NAME [DESTINATION]
@@ -102,13 +111,58 @@ print(json.load(sys.stdin).get("materialization", ""))
 '
 }
 
+prepare_ssh() {
+    [[ -z "$ssh_root" ]] || return 0
+    require_tool ssh
+    local identity="$HOME/.ssh/merge_key"
+    if [[ ! -r "$identity" || ! -r "$identity-cert.pub" ]]; then
+        echo "SPHERE SSH certificate missing. Run mrg login $username again." >&2
+        return 2
+    fi
+    ssh_root="$(mktemp -d /tmp/cs6494-hw2-ssh.XXXXXX)"
+    python3 - "$ssh_root/config" "$username" "${xdc/./-}" "$identity" <<'PY'
+import pathlib
+import sys
+config, user, xdc_host, identity = sys.argv[1:]
+def quoted(value):
+    return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
+known_hosts = str(pathlib.Path(identity).parent / 'known_hosts')
+temporary_hosts = str(pathlib.Path(config).parent / 'known_hosts')
+pathlib.Path(config).write_text(f'''Host hw2-jump
+    HostName jump.sphere-testbed.net
+    Port 2022
+    StrictHostKeyChecking yes
+Host hw2-xdc
+    HostName {xdc_host}
+    ProxyJump hw2-jump
+Host controller process
+    HostName %h
+    ProxyJump hw2-xdc
+    UserKnownHostsFile {quoted(temporary_hosts)}
+Host *
+    User {user}
+    IdentityFile {quoted(identity)}
+    CertificateFile {quoted(identity + '-cert.pub')}
+    IdentitiesOnly yes
+    BatchMode yes
+    ConnectTimeout 30
+    ServerAliveInterval 15
+    ServerAliveCountMax 4
+    StrictHostKeyChecking accept-new
+    UserKnownHostsFile {quoted(known_hosts)} {quoted(temporary_hosts)}
+''', encoding='utf-8')
+PY
+}
+
+remote() {
+    prepare_ssh || return $?
+    ssh -T -F "$ssh_root/config" "$@"
+}
+
 bootstrap_access() {
-    require_tool expect
     require_tool ssh-keygen
 
-    local key_root
     key_root="$(mktemp -d /tmp/cs6494-hw2-key.XXXXXX)"
-    trap 'rm -rf "$key_root"' RETURN
     ssh-keygen -q -t ed25519 -N '' -C cs6494-hw2-ansible -f "$key_root/key"
 
     mrg xdc scp upload "$key_root/key" "$xdc:/tmp/hw2-ansible-key"
@@ -118,46 +172,27 @@ bootstrap_access() {
     for node in controller process; do
         mrg xdc scp upload -x "$xdc" "$key_root/key.pub" \
             "$node:/tmp/hw2-ansible-key.pub"
-        HW2_XDC="$xdc" HW2_NODE="$node" expect <<'EXPECT'
-set timeout 60
-spawn mrg xdc ssh -x $env(HW2_XDC) $env(HW2_NODE)
-expect -re {[#$] $}
-send -- {install -d -m 700 "$HOME/.ssh"; touch "$HOME/.ssh/authorized_keys"; chmod 600 "$HOME/.ssh/authorized_keys"; sed -i '/ cs6494-hw2-ansible$/d' "$HOME/.ssh/authorized_keys"; cat /tmp/hw2-ansible-key.pub >> "$HOME/.ssh/authorized_keys"}
-send "\r"
-expect -re {[#$] $}
-send "exit\r"
-expect eof
-EXPECT
+        remote "$node" 'bash -se' <<'REMOTE'
+install -d -m 700 "$HOME/.ssh"
+touch "$HOME/.ssh/authorized_keys"
+chmod 600 "$HOME/.ssh/authorized_keys"
+sed -i '/ cs6494-hw2-ansible$/d' "$HOME/.ssh/authorized_keys"
+cat /tmp/hw2-ansible-key.pub >> "$HOME/.ssh/authorized_keys"
+REMOTE
     done
 }
 
 provision() {
     local expires
     expires="$(exact_expiry)"
-    HW2_XDC="$xdc" \
-    HW2_BUNDLE="$bundle" \
-    HW2_INSTANCE="$realization" \
-    HW2_ALLOCATION="$username" \
-    HW2_EXPIRES="$expires" \
-    expect <<'EXPECT'
-set timeout 1800
-spawn mrg xdc ssh $env(HW2_XDC)
-expect -re {[#$] $}
-send -- "test -r $env(HW2_BUNDLE)/ansible/provision.sh && bash $env(HW2_BUNDLE)/ansible/provision.sh $env(HW2_INSTANCE) $env(HW2_ALLOCATION) $env(HW2_EXPIRES)"
-send -- {; rc=$?; printf '\n__HW2_RC__%s\n' "$rc"}
-send "\r"
-expect {
-    -re {__HW2_RC__([0-9]+)} {
-        set rc $expect_out(1,string)
-        if {$rc != 0} { exit $rc }
-    }
-    timeout { exit 124 }
-    eof { exit 1 }
+    remote hw2-xdc "bash -se -- '$bundle' '$realization' '$username' '$expires'" <<'REMOTE'
+bundle="$1"
+test -r "$bundle/ansible/provision.sh" || {
+    echo "Course provisioning bundle is unavailable; report this to staff." >&2
+    exit 2
 }
-expect -re {[#$] $}
-send "exit\r"
-expect eof
-EXPECT
+timeout 1800 bash "$bundle/ansible/provision.sh" "$2" "$3" "$4"
+REMOTE
 }
 
 show_status() {
@@ -188,7 +223,7 @@ print("attached:    {}".format(x.get("materialization", "not attached")))
 }
 
 create_environment() {
-    require_tool expect
+    prepare_ssh
     require_tool ssh-keygen
 
     if realization_exists; then
@@ -202,14 +237,14 @@ create_environment() {
         echo "Reusing your existing fixed realization: $realization"
     else
         echo "Creating your fixed HW2 realization (duration: $duration)..."
-        mrg realize "$realization" revision "$model_revision" --duration "$duration"
+        mrg --sync realize "$realization" revision "$model_revision" --duration "$duration"
     fi
 
     if materialization_exists; then
         echo "Materialization already exists."
     else
         echo "Materializing the two-node topology..."
-        mrg materialize "$realization"
+        mrg --sync materialize "$realization"
     fi
 
     if xdc_record >/dev/null; then
@@ -221,7 +256,7 @@ create_environment() {
         fi
     else
         echo "Creating your private-access XDC..."
-        mrg new xdc "$xdc" --type personal --duration "$duration"
+        mrg --sync new xdc "$xdc" --type personal --duration "$duration"
         if ! xdc_record >/dev/null; then
             echo "SPHERE did not create $xdc; contact course staff with this message" >&2
             exit 2
@@ -230,13 +265,14 @@ create_environment() {
 
     if [[ "$(attached_materialization)" != "$realization" ]]; then
         echo "Attaching your XDC..."
-        mrg xdc attach "$xdc" "$realization"
+        mrg --sync xdc attach "$xdc" "$realization"
     fi
 
     echo "Preparing short-lived deployment access..."
     bootstrap_access
     echo "Installing the fixed course environment. This can take several minutes..."
     provision
+    check_environment
 
     echo
     echo "HW2 is ready."
@@ -247,11 +283,37 @@ create_environment() {
 }
 
 connect_environment() {
-    if ! materialization_exists || ! xdc_record >/dev/null; then
-        echo "HW2 is not ready. Run: ./sphere/hw2-sphere create" >&2
-        exit 2
+    check_environment
+    mrg xdc ssh -x "$xdc" process
+}
+
+check_environment() {
+    require_ready_environment
+    if [[ "$(attached_materialization)" != "$realization" ]]; then
+        echo "HW2 XDC attachment is incomplete. Run: ./sphere/hw2-sphere create" >&2
+        return 2
     fi
-    exec mrg xdc ssh -x "$xdc" process
+    if ! remote process "bash -se -- '$realization' '$username'" <<'REMOTE'
+test -x /usr/local/bin/hw2-prepare && test -r /etc/profile.d/cs6494-hw2.sh || {
+    echo "HW2 provisioning has not finished: helper or identity profile missing." >&2
+    exit 2
+}
+source /etc/profile.d/cs6494-hw2.sh
+test "$HW2_INSTANCE_ID" = "$1" && test "$HW2_ALLOCATION_ID" = "$2" || {
+    echo "Prepared identity does not match your allocation; resume create." >&2
+    exit 2
+}
+# Preflight checks writable evidence output too. Use the student's canonical
+# copy, not the root-owned installed payload checked by Ansible.
+hw2-prepare >/dev/null
+cd "$HOME/cs6494-hw2/hw2"
+python3 preflight.py --require-sphere
+REMOTE
+    then
+        echo "HW2 is not ready. From your workstation, rerun ./sphere/hw2-sphere create." >&2
+        echo "Keep existing files; do not install packages or release the allocation to repair setup." >&2
+        return 2
+    fi
 }
 
 require_ready_environment() {
@@ -269,8 +331,20 @@ download_tree() {
         exit 2
     fi
     require_ready_environment
-    mrg xdc scp download -x "$xdc" -r \
-        "process:cs6494-hw2/hw2/$remote_path" "$destination"
+    local resolved
+    resolved="$(remote process "bash -se -- '$remote_path'" <<'REMOTE'
+matches=()
+for root in cs6494-hw2/hw2 cs6494-hw2/labs/cps-tank/hw2 cs6494-fall2026-students/labs/cps-tank/hw2; do
+    [[ ! -d "$HOME/$root/$1" ]] || matches+=("$root/$1")
+done
+if [[ ${#matches[@]} -ne 1 ]]; then
+    echo "Expected one matching evidence directory; found ${#matches[@]}. Keep your files and report this to staff." >&2
+    exit 2
+fi
+printf '%s\n' "${matches[0]}"
+REMOTE
+)"
+    mrg xdc scp download -x "$xdc" -r "process:$resolved" "$destination"
     echo "Downloaded $remote_path to $destination"
 }
 
@@ -326,6 +400,10 @@ case "$command" in
     connect)
         [[ $# -eq 1 ]] || { usage >&2; exit 2; }
         connect_environment
+        ;;
+    check)
+        [[ $# -eq 1 ]] || { usage >&2; exit 2; }
+        check_environment
         ;;
     download-analysis)
         [[ $# -le 2 ]] || { usage >&2; exit 2; }

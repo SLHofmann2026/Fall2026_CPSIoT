@@ -49,6 +49,12 @@ assignment: after course project access is enabled, you will use the fixed
 create, enter, and release your own isolated allocation. Do not create or attach
 resources manually outside that wrapper.
 
+`create` installs the lab as well as allocating compute. Keep it running until
+`HW2 is ready` after remote preflight passes. If the node has no `hw2-prepare`
+or is missing dependencies, follow the
+[setup recovery guide](../labs/cps-tank/hw2/sphere/README.md#recover-an-incomplete-setup)
+from your workstation; do not delete your clone or install packages manually.
+
 If you do not know the password, use Launch account recovery for the exact email
 address course staff registered. Do not create another account.
 
